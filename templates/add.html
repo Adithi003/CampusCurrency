@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Add Expense{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Add Expense ➕</div>
+    <div class="page-subtitle">What did you spend money on?</div>
+  </div>
+</div>
+
+<div style="max-width:580px">
+  <div class="card">
+    <form method="POST" action="{{ url_for('add') }}">
+
+      <div class="form-group">
+        <label class="form-label">💰 Amount ($)</label>
+        <input
+          type="number" name="amount" class="form-control"
+          placeholder="0.00" step="0.01" min="0.01" required autofocus
+          style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.8rem;text-align:center;letter-spacing:-0.02em"
+        />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">🏷️ Category</label>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+          {% for icon, name in categories %}
+          <label style="cursor:pointer">
+            <input type="radio" name="category" value="{{ name }}" style="display:none"
+              {% if loop.first %}checked{% endif %}>
+            <div class="cat-btn" style="
+              padding:14px 10px;
+              border-radius:12px;
+              border:2px solid {{ 'var(--accent)' if loop.first else 'var(--border)' }};
+              background:{{ 'rgba(124,92,252,0.12)' if loop.first else 'var(--surface2)' }};
+              text-align:center;
+              transition:all 0.2s;
+              cursor:pointer;
+            ">
+              <div style="font-size:1.5rem;margin-bottom:4px">{{ icon }}</div>
+              <div style="font-size:0.72rem;color:var(--text2);font-weight:500;line-height:1.2">{{ name }}</div>
+            </div>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">📝 Note <span style="color:var(--text3);text-transform:none;font-weight:400">(optional)</span></label>
+        <input type="text" name="note" class="form-control" placeholder="e.g. Weekly groceries, Opal top-up…" maxlength="100" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">📅 Date</label>
+        <input type="date" name="date" class="form-control" value="{{ today }}" required />
+      </div>
+
+      <div style="display:flex;gap:12px;margin-top:8px">
+        <button type="submit" class="btn btn-primary" style="flex:1;justify-content:center;padding:15px">
+          💸 Add Expense
+        </button>
+        <a href="{{ url_for('index') }}" class="btn btn-ghost">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+  <div style="margin-top:20px;padding:16px 20px;background:rgba(124,92,252,0.06);border:1px solid rgba(124,92,252,0.15);border-radius:var(--radius-sm)">
+    <div style="font-size:0.8rem;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">💡 Quick Tips</div>
+    <div style="font-size:0.85rem;color:var(--text2);line-height:1.7">
+      • Log expenses right after paying — you'll forget later!<br>
+      • Use the note field to remember exactly what you bought<br>
+      • Set budgets per category to get alerts when you overspend
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll('label input[type=radio]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      document.querySelectorAll('.cat-btn').forEach(btn => {
+        btn.style.borderColor = 'var(--border)';
+        btn.style.background  = 'var(--surface2)';
+      });
+      radio.closest('label').querySelector('.cat-btn').style.borderColor = 'var(--accent)';
+      radio.closest('label').querySelector('.cat-btn').style.background  = 'rgba(124,92,252,0.12)';
+    });
+  });
+  document.querySelectorAll('.cat-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const radio = btn.closest('label').querySelector('input[type=radio]');
+      radio.checked = true;
+      radio.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  });
+</script>
+{% endblock %}

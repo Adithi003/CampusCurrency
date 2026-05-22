@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Budgets{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Budgets 🎯</div>
+    <div class="page-subtitle">Set monthly limits per category — get alerts when you're close</div>
+  </div>
+</div>
+
+<div style="max-width:680px">
+  <form method="POST" action="{{ url_for('budgets') }}">
+    <div class="card">
+      <div class="card-title">Monthly Budget Limits</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        {% for icon, name in categories %}
+        {% set spent = cat_totals.get(name, 0) %}
+        {% set limit = budgets.get(name) %}
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span style="font-size:1.2rem">{{ icon }}</span>
+            <span style="font-size:0.88rem;font-weight:600">{{ name }}</span>
+            {% if spent > 0 %}
+            <span style="margin-left:auto;font-size:0.75rem;color:var(--text3)">spent ${{ '%.0f'|format(spent) }}</span>
+            {% endif %}
+          </div>
+          <input
+            type="number" name="budget_{{ name }}" class="form-control"
+            placeholder="No limit"
+            value="{{ '%.2f'|format(limit) if limit else '' }}"
+            min="1" step="1"
+            style="font-size:0.9rem;padding:10px 14px"
+          />
+          {% if limit and spent > 0 %}
+          {% set pct = [spent / limit * 100, 100]|min %}
+          <div class="progress-wrap" style="margin-top:8px">
+            <div class="progress-bar" style="
+              width:{{ pct }}%;
+              background:{{ '#ff5e6c' if spent > limit else ('#ffbe45' if pct > 80 else '#43e97b') }}
+            "></div>
+          </div>
+          <div style="font-size:0.72rem;color:var(--text3);margin-top:4px">
+            {{ '%.0f'|format(pct) }}% used
+            {% if spent > limit %}<span style="color:var(--danger)"> · Over budget!</span>{% endif %}
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      <div style="margin-top:24px;display:flex;gap:12px">
+        <button type="submit" class="btn btn-primary" style="justify-content:center">💾 Save Budgets</button>
+        <a href="{{ url_for('index') }}" class="btn btn-ghost">← Back to Dashboard</a>
+      </div>
+    </div>
+  </form>
+
+  <div style="margin-top:16px;padding:14px 18px;background:rgba(67,233,123,0.05);border:1px solid rgba(67,233,123,0.15);border-radius:var(--radius-sm)">
+    <div style="font-size:0.8rem;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">🎯 How budgets work</div>
+    <div style="font-size:0.83rem;color:var(--text2);line-height:1.7">
+      Set a monthly limit for any category. You'll see a warning on the dashboard when you reach 80% of your limit, and an alert when you go over. Leave a field blank for no limit.
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Dashboard 📊</div>
+    <div class="page-subtitle">Here's where your money went in {{ month_label }}</div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <select class="month-select" onchange="location.href='/?month='+this.value">
+      <option value="{{ now.strftime('%Y-%m') }}" {% if month == now.strftime('%Y-%m') %}selected{% endif %}>
+        This Month
+      </option>
+      {% for m in available_months %}
+        {% if m != now.strftime('%Y-%m') %}
+        <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ m }}</option>
+        {% endif %}
+      {% endfor %}
+    </select>
+    <a href="{{ url_for('add') }}" class="btn btn-primary">+ Add Expense</a>
+  </div>
+</div>
+
+{% if alerts %}
+<div style="margin-bottom:24px">
+  {% for a in alerts %}
+  <div class="alert {{ 'alert-danger' if a.over else 'alert-warning' }}">
+    {{ '🚨' if a.over else '⚠️' }}
+    <strong>{{ a.category }}</strong> —
+    {% if a.over %}
+      You're over budget! Spent ${{ '%.2f'|format(a.spent) }} / ${{ '%.2f'|format(a.limit) }} limit
+    {% else %}
+      Almost at your budget! {{ a.pct }}% used (${{ '%.2f'|format(a.spent) }} / ${{ '%.2f'|format(a.limit) }})
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="grid-3" style="margin-bottom:24px">
+  <div class="stat-card" style="--accent-grad: linear-gradient(90deg, #7c5cfc, #ff6b9d)">
+    <div class="stat-label">Total Spent</div>
+    <div class="stat-value">${{ '%.2f'|format(total) }}</div>
+    <div class="stat-meta">{{ month_label }}</div>
+  </div>
+  <div class="stat-card" style="--accent-grad: linear-gradient(90deg, #43e97b, #38f9d7)">
+    <div class="stat-label">Transactions</div>
+    <div class="stat-value">{{ recent|length if month == now.strftime('%Y-%m') else cat_totals|sum(attribute='total')|int }}</div>
+    <div class="stat-meta">
+      {% if cat_totals %}Top: {{ cat_totals[0].category }}{% else %}No expenses yet{% endif %}
+    </div>
+  </div>
+  <div class="stat-card" style="--accent-grad: linear-gradient(90deg, #ffbe45, #ff6b9d)">
+    <div class="stat-label">Daily Average</div>
+    <div class="stat-value">
+      {% set days = now.day if month == now.strftime('%Y-%m') else 30 %}
+      ${{ '%.2f'|format(total / days if days > 0 else 0) }}
+    </div>
+    <div class="stat-meta">per day this month</div>
+  </div>
+</div>
+
+<div class="grid-dash" style="margin-bottom:24px">
+  <div class="card">
+    <div class="card-title">Spending by Category</div>
+    {% if cat_totals %}
+    <div style="position:relative;height:260px;display:flex;align-items:center;justify-content:center">
+      <canvas id="donutChart"></canvas>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:16px">
+      {% for ct in cat_totals %}
+      <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--text2)">
+        <span style="width:10px;height:10px;border-radius:50%;background:{{ category_colors.get(ct.category,'#888') }};display:inline-block"></span>
+        {{ ct.category }}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">🍩</div>
+      <h3>No data yet</h3>
+      <p>Add some expenses to see your breakdown</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-title">Category Breakdown</div>
+    {% if cat_totals %}
+    <div style="display:flex;flex-direction:column;gap:16px">
+      {% for ct in cat_totals %}
+      {% set pct = (ct.total / total * 100) if total > 0 else 0 %}
+      {% set budget = budgets.get(ct.category) %}
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <div style="display:flex;align-items:center;gap:8px">
+            {% for icon, name in categories %}{% if name == ct.category %}<span>{{ icon }}</span>{% endif %}{% endfor %}
+            <span style="font-size:0.88rem;font-weight:500">{{ ct.category }}</span>
+          </div>
+          <div style="text-align:right">
+            <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.95rem">${{ '%.2f'|format(ct.total) }}</span>
+            <span style="color:var(--text3);font-size:0.75rem;margin-left:4px">{{ '%.0f'|format(pct) }}%</span>
+          </div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-bar" style="width:{{ pct }}%;background:{{ category_colors.get(ct.category,'var(--accent)') }}"></div>
+        </div>
+        {% if budget %}
+        <div style="font-size:0.72rem;color:var(--text3);margin-top:3px">
+          Budget: ${{ '%.2f'|format(budget) }}
+          {% if ct.total > budget %}<span style="color:var(--danger)"> · Over!</span>{% endif %}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:30px 0">
+      <div class="empty-icon">📂</div>
+      <h3>No categories yet</h3>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-title">Monthly Trend</div>
+    {% if trend %}
+    <div style="height:200px"><canvas id="trendChart"></canvas></div>
+    {% else %}
+    <div class="empty-state" style="padding:30px 0">
+      <div class="empty-icon">📈</div>
+      <h3>Add expenses across months to see trends</h3>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-title">Recent Transactions</div>
+    {% if recent %}
+    <div style="display:flex;flex-direction:column;gap:2px">
+      {% for e in recent[:6] %}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(42,42,58,0.5)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:10px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1rem">
+            {% for icon, name in categories %}{% if name == e['category'] %}{{ icon }}{% endif %}{% endfor %}
+          </div>
+          <div>
+            <div style="font-size:0.88rem;font-weight:500">{{ e['category'] }}</div>
+            <div style="font-size:0.75rem;color:var(--text3)">
+              {{ e['date'] }}{% if e['note'] %} · {{ e['note'][:20] }}{% if e['note']|length > 20 %}…{% endif %}{% endif %}
+            </div>
+          </div>
+        </div>
+        <div style="font-family:'Syne',sans-serif;font-weight:700;color:var(--accent2)">-${{ '%.2f'|format(e['amount']) }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    <a href="{{ url_for('history') }}" style="display:block;text-align:center;margin-top:16px;font-size:0.85rem;color:var(--accent);text-decoration:none">
+      View all transactions →
+    </a>
+    {% else %}
+    <div class="empty-state" style="padding:30px 0">
+      <div class="empty-icon">🧾</div>
+      <h3>No transactions yet</h3>
+      <p>Hit the + button to add your first one!</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+{% if cat_totals %}
+new Chart(document.getElementById('donutChart'), {
+  type: 'doughnut',
+  data: {
+    labels: {{ cat_totals | map(attribute='category') | list | tojson }},
+    datasets: [{
+      data: {{ cat_totals | map(attribute='total') | list | tojson }},
+      backgroundColor: {{ cat_totals | map(attribute='category') | list | tojson }}.map(
+        c => ({ {% for k,v in category_colors.items() %}"{{ k }}":"{{ v }}",{% endfor %} })[c] || '#888'
+      ),
+      borderWidth: 0,
+      hoverOffset: 8,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '70%',
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.label}: $${ctx.parsed.toFixed(2)}` } }
+    }
+  }
+});
+{% endif %}
+
+{% if trend %}
+new Chart(document.getElementById('trendChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ trend | map(attribute='month') | list | tojson }},
+    datasets: [{
+      label: 'Spent',
+      data: {{ trend | map(attribute='total') | list | tojson }},
+      backgroundColor: 'rgba(124,92,252,0.6)',
+      borderWidth: 0,
+      borderRadius: 8,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#5a5a70', font: { size: 11 } } },
+      y: {
+        grid: { color: 'rgba(255,255,255,0.04)' },
+        ticks: { color: '#5a5a70', font: { size: 11 }, callback: v => '$' + v },
+        beginAtZero: true,
+      }
+    }
+  }
+});
+{% endif %}
+</script>
+{% endblock %}

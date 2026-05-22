@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}History{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">History 📋</div>
+    <div class="page-subtitle">{{ month_label }} · {{ expenses|length }} transaction{{ 's' if expenses|length != 1 }}</div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <select class="month-select" onchange="location.href='/history?month='+this.value">
+      <option value="">All Time</option>
+      {% for m in available_months %}
+      <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>{{ m }}</option>
+      {% endfor %}
+    </select>
+    <a href="{{ url_for('add') }}" class="btn btn-primary">+ Add</a>
+  </div>
+</div>
+
+{% if expenses %}
+<div class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:16px;margin-bottom:4px;border-bottom:1px solid var(--border)">
+    <div style="font-size:0.85rem;color:var(--text2)">Total</div>
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;color:var(--accent2)">
+      ${{ '%.2f'|format(total) }}
+    </div>
+  </div>
+  <table class="expense-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Category</th>
+        <th>Note</th>
+        <th style="text-align:right">Amount</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in expenses %}
+      <tr>
+        <td style="color:var(--text3);font-size:0.82rem;white-space:nowrap">{{ e['date'] }}</td>
+        <td>
+          <div class="cat-pill">
+            {% for icon, name in categories %}{% if name == e['category'] %}{{ icon }}{% endif %}{% endfor %}
+            {{ e['category'] }}
+          </div>
+        </td>
+        <td style="color:var(--text2);font-size:0.85rem;max-width:200px">{{ e['note'] if e['note'] else '—' }}</td>
+        <td style="text-align:right;font-family:'Syne',sans-serif;font-weight:700;color:var(--accent2);white-space:nowrap">
+          ${{ '%.2f'|format(e['amount']) }}
+        </td>
+        <td style="text-align:right">
+          <form method="POST" action="{{ url_for('delete', expense_id=e['id']) }}"
+                onsubmit="return confirm('Delete this expense?')">
+            <button type="submit" class="btn btn-danger">🗑️</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card">
+  <div class="empty-state">
+    <div class="empty-icon">🧾</div>
+    <h3>No expenses found</h3>
+    <p style="margin-bottom:20px">
+      {% if selected_month %}No expenses for this month.{% else %}You haven't added any expenses yet.{% endif %}
+    </p>
+    <a href="{{ url_for('add') }}" class="btn btn-primary">+ Add your first expense</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
