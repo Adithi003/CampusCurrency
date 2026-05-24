@@ -1,4 +1,4 @@
-Overview
+Overview : 
 CampusCurrency is a terminal-based personal expense tracker built specifically for university students, with a focus on international students managing money in a new country. Users are allowed to record, organise, and reflect on their daily spending, with all data saved automatically between sessions.
 
 How Expenses Are Recorded :
