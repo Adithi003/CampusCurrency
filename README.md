@@ -12,7 +12,7 @@ How Expenses Are Categorised :
 Expenses are grouped into categories designed around real student spending habits: Food & Groceries, Transport, Rent & Utilities, Textbooks & Supplies, Entertainment, Health, and Other. These fixed number of categories ensures consistency across the entries, keeping the summaries and analysis accurate.
 
 How Expenses Are Stored :
-Expenses will be held in memory using a 2D list while the program runs. Every time an expense is added or deleted, the list is written to a CSV file and when the program starts again, it reads the file back into memory, so data persists permanently between sessions.
+SQLite database engine is used and data persists permanently between sessions.
 
 Data Analysis : 
 Three layers of analysis:
